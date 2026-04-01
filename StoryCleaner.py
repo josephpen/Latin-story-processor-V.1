@@ -1,9 +1,35 @@
 # StoryCleaner.py
+import os
+os.environ["STANZA_RESOURCES_DIR"] = r"C:\Users\joeyp\stanza_resources"
+
 from cltk import NLP
 import re
 import unicodedata
 
 latin_nlp = NLP(language="lat", suppress_banner=True)
+
+ACCENT_TO_MACRON = {
+    # acute
+    'á': 'ā', 'é': 'ē', 'í': 'ī', 'ó': 'ō', 'ú': 'ū',
+    'Á': 'Ā', 'É': 'Ē', 'Í': 'Ī', 'Ó': 'Ō', 'Ú': 'Ū',
+    # grave
+    'à': 'ā', 'è': 'ē', 'ì': 'ī', 'ò': 'ō', 'ù': 'ū',
+    'À': 'Ā', 'È': 'Ē', 'Ì': 'Ī', 'Ò': 'Ō', 'Ù': 'Ū',
+    # circumflex
+    'â': 'ā', 'ê': 'ē', 'î': 'ī', 'ô': 'ō', 'û': 'ū',
+    'Â': 'Ā', 'Ê': 'Ē', 'Î': 'Ī', 'Ô': 'Ō', 'Û': 'Ū',
+    # umlaut / diaeresis
+    'ä': 'ā', 'ë': 'ē', 'ï': 'ī', 'ö': 'ō', 'ü': 'ū',
+    'Ä': 'Ā', 'Ë': 'Ē', 'Ï': 'Ī', 'Ö': 'Ō', 'Ü': 'Ū',
+    # TODO: add tilde (ã ẽ ĩ õ ũ) and breve (ă ĕ ĭ ŏ ŭ) if needed
+}
+
+def normalize_accents(text: str) -> str:
+    """
+    Converts accented vowels (acute, grave, circumflex, umlaut) to their
+    macron equivalents, so CLTK receives properly macronized Latin.
+    """
+    return ''.join(ACCENT_TO_MACRON.get(c, c) for c in text)
 
 def strip_macrons(text):
     return "".join(
@@ -52,12 +78,16 @@ def get_lemmas(text: str) -> list:
     Returns:
         A sorted list of (lemma, original_word) tuples.
     """
+    # Convert accent variants (acute, grave, circumflex, umlaut) to macrons
+    # so CLTK receives the standard macronized forms it was trained on
+    text = normalize_accents(text)
+
     # Rejoin words hyphenated across line breaks (e.g. "ma-\ngister" → "magister")
+    # Punctuation is kept so CLTK can use sentence boundaries for better accuracy
     text = re.sub(r"-\n", "", text)
-    text_clean = re.sub(r"[^\w\s]", " ", text)
 
     print("Analyzing text with CLTK (this may take a moment for longer stories)...")
-    doc = latin_nlp.analyze(text=text_clean)
+    doc = latin_nlp.analyze(text=text)
 
     seen = set()
     lemma_pairs = []
