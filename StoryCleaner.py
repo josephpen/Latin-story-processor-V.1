@@ -1,7 +1,6 @@
 # StoryCleaner.py
 import os
-os.environ["STANZA_RESOURCES_DIR"] = r"C:\Users\joeyp\stanza_resources"
-
+os.environ["STANZA_RESOURCES_DIR"] = os.path.join(os.path.expanduser("~"), "stanza_resources")
 from cltk import NLP
 import re
 import unicodedata
